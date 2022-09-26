@@ -1,8 +1,7 @@
 
-#include "mbed.h"
 #include "CKraft_binaryutils.h"
 #include "USBSerial.h"
-
+#include "mbed.h"
 
 #define set (uint32_t *)0x50000508
 #define clear (uint32_t *)0x5000050C
@@ -16,64 +15,81 @@ Thread thread2;
 USBSerial serial;
 
 typedef struct {
-    float    duty;   /* AD result of measured voltage */
+    float duty; /* AD result of measured voltage */
     //uint32_t counter;   /* A counter value  */
 } message_t;
 
 MemoryPool<message_t, 16> mpool;
 Queue<message_t, 9> queue;
 
-void Producer(void){
+void Producer(void) {
 
     uint32_t i = 0;
+    uint32_t j = 1;
     while (true) {
-        if(i < 10){
-        serial.printf("the number is %i\r\n", i);    
-        message_t *message = mpool.try_alloc();
-        message->duty = i*0.1;
-        //message->counter = i;
-        queue.put(message);
-        i++; 
-        thread_sleep_for(1000);
+        if (j == 1){
+            serial.printf("in j = 1\r\n");
+            if (i < 10) {
+                serial.printf("the number is %i\r\n", i);
+                message_t *message = mpool.try_alloc();
+                message->duty = i * 0.1;
+                queue.put(message);
+                i++;
+                thread_sleep_for(100);
+            } 
+            else if (i == 10){
+                j = 0;
+                serial.printf("j is %i\r\n", j);
+                i--;
+            }
         }
-        else if(i==10){
-            i=0;
-        }
+        else if(j == 0){
+            serial.printf("in j = 0\r\n");
+            if (i > 0) {
+                serial.printf("the number is %i\r\n", i);
+                message_t *message = mpool.try_alloc();
+                message->duty = i * 0.1;
+                queue.put(message);
+                i--;
+                thread_sleep_for(100);
+            }
+            else if(i == 0){
+                j = 1;
+                i++;
+            }
 
+        }
+        
     }
 }
 
-void Vanilla(void){
+void Vanilla(void) {
     float duty_c;
     float light;
     float dark;
     uint32_t period = 10;
 
-    while(true){
+    while (true) {
         osEvent evt = queue.get(0);
-        
+
         if (evt.status == osEventMessage) {
             message_t *message = (message_t *)evt.value.p;
             duty_c = message->duty;
-            serial.printf("message gotten %d\r\n", int(duty_c*10));
+            serial.printf("message gotten %d\r\n", int(duty_c * 10));
             mpool.free(message);
         }
         light = int(duty_c * period);
         dark = period - light;
 
-        setbit(set, ping); // turning on 
+        setbit(set, ping); // turning on
         thread_sleep_for(light);
         setbit(clear, ping); // turning off
         thread_sleep_for(dark);
     }
-
-
-
 }
 
-
 // main() runs in its own thread in the OS
-int main(){ 
+int main() {
     setbit(dir, ping);
     serial.printf("Initialize\r\n");
     thread1.start(Producer);
@@ -81,8 +97,6 @@ int main(){
 
     while (true) {
         serial.printf("in main\r\n");
-        thread_sleep_for(1000);
-
+        thread_sleep_for(100);
     }
 }
-
