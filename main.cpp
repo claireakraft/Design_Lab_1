@@ -2,6 +2,7 @@
 #include "CKraft_binaryutils.h"
 #include "USBSerial.h"
 #include "mbed.h"
+#include <utility>
 
 #define set (uint32_t *)0x50000508
 #define clear (uint32_t *)0x5000050C
@@ -13,8 +14,9 @@
 Thread thread1;
 Thread thread2;
 Thread thread3;
+Thread thread4;
 USBSerial serial;
-PwmOut led(LED_BLUE);
+//PwmOut led(LED_BLUE);
 
 typedef struct {
     float duty; /* AD result of measured voltage */
@@ -92,21 +94,53 @@ void Vanilla(void) {
 
 void Chocolate(void){
     float dutyc;
-    led.period(1.0f);      // 1 second period
+    //led.period(1.0f);      // 1 second period
     while(true){
         osEvent evt = queue.get(0);
 
         if (evt.status == osEventMessage) {
             message_t *message = (message_t *)evt.value.p;
             dutyc = message->duty;
-            serial.printf("message gotten %d\r\n", int(dutyc * 10));
             mpool.free(message);
         }
         
-        led.write(dutyc);      // 50% duty cycle, relative to period
-        //while (1);
-        //thread_sleep_for(100);
+        //led.write(dutyc);      // 50% duty cycle, relative to period
+        
     }
+
+}
+
+void Strawberry(void){
+    
+    //float dutys;
+ 
+    uint32_t out_pins[4] = {LED_RED, NRF_PWM_PIN_NOT_CONNECTED, NRF_PWM_PIN_NOT_CONNECTED, NRF_PWM_PIN_NOT_CONNECTED};
+    nrf_pwm_pins_set(NRF_PWM0, out_pins);
+    nrf_pwm_configure(NRF_PWM0, NRF_PWM_CLK_2MHz,NRF_PWM_MODE_UP, 1000);
+    nrf_pwm_values_common_t num[] = {0};
+    nrf_pwm_sequence_t seq = {.values = num, .length= NRF_PWM_VALUES_LENGTH(num), .repeats= 50, .end_delay = 0 };
+    nrf_pwm_enable(NRF_PWM0);
+    nrf_pwm_sequence_set(NRF_PWM0, 0, &seq);
+    nrf_pwm_decoder_set(NRF_PWM0, NRF_PWM_LOAD_COMMON, NRF_PWM_STEP_AUTO);
+    nrf_pwm_task_trigger(NRF_PWM0, NRF_PWM_TASK_SEQSTART0);
+
+    while(true){
+        osEvent evt = queue.get(0);
+        
+        if (evt.status == osEventMessage) {
+            message_t *message = (message_t *)evt.value.p;
+            num[0] = (message->duty)*100;
+            seq = {.values = num, .length= NRF_PWM_VALUES_LENGTH(num), .repeats= 50, .end_delay = 0 };
+            mpool.free(message);
+        }
+
+        if(nrf_pwm_event_check(NRF_PWM0, NRF_PWM_EVENT_SEQEND0)){
+            nrf_pwm_sequence_set(NRF_PWM0, 0, &seq);
+            nrf_pwm_task_trigger(NRF_PWM0, NRF_PWM_TASK_SEQSTART0);
+            nrf_pwm_event_clear(NRF_PWM0, NRF_PWM_EVENT_SEQEND0);
+        }
+        thread_sleep_for(100);
+    } 
 
 }
 
@@ -118,11 +152,10 @@ int main() {
     serial.printf("Initialize\r\n");
     thread1.start(Producer);
     //thread2.start(Vanilla);
-    thread3.start(Chocolate);
-
+    //thread3.start(Chocolate);
+    thread4.start(Strawberry);
 
     while (true) {
-        serial.printf("in main\r\n");
         thread_sleep_for(100);
     }
 }
