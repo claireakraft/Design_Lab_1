@@ -12,7 +12,9 @@
 
 Thread thread1;
 Thread thread2;
+Thread thread3;
 USBSerial serial;
+PwmOut led(LED_BLUE);
 
 typedef struct {
     float duty; /* AD result of measured voltage */
@@ -88,12 +90,36 @@ void Vanilla(void) {
     }
 }
 
+void Chocolate(void){
+    float dutyc;
+    led.period(1.0f);      // 1 second period
+    while(true){
+        osEvent evt = queue.get(0);
+
+        if (evt.status == osEventMessage) {
+            message_t *message = (message_t *)evt.value.p;
+            dutyc = message->duty;
+            serial.printf("message gotten %d\r\n", int(dutyc * 10));
+            mpool.free(message);
+        }
+        
+        led.write(dutyc);      // 50% duty cycle, relative to period
+        //while (1);
+        //thread_sleep_for(100);
+    }
+
+}
+
+
+
 // main() runs in its own thread in the OS
 int main() {
-    setbit(dir, ping);
+    //setbit(dir, ping);
     serial.printf("Initialize\r\n");
     thread1.start(Producer);
-    thread2.start(Vanilla);
+    //thread2.start(Vanilla);
+    thread3.start(Chocolate);
+
 
     while (true) {
         serial.printf("in main\r\n");
