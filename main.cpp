@@ -15,8 +15,8 @@ Thread thread1;
 Thread thread2;
 Thread thread3;
 Thread thread4;
-USBSerial serial;
-//PwmOut led(LED_BLUE);
+//USBSerial serial;
+PwmOut led(LED_BLUE);
 
 typedef struct {
     float duty; /* AD result of measured voltage */
@@ -28,46 +28,108 @@ Queue<message_t, 9> queue;
 
 void Producer(void) {
 
-    uint32_t i = 0;
-    uint32_t j = 1;
+    uint32_t iv = 0;
+    uint32_t jv = 1;
+    uint32_t ic = 0;
+    uint32_t jc = 1;
+    uint32_t is = 0;
+    uint32_t js = 1;
     while (true) {
-        if (j == 1){
-            serial.printf("in j = 1\r\n");
-            if (i < 10) {
-                serial.printf("the number is %i\r\n", i);
-                message_t *message = mpool.try_alloc();
-                message->duty = i * 0.1;
-                queue.put(message);
-                i++;
-                thread_sleep_for(100);
+        //queue for the vanilla thread
+        if (jv == 1){
+            if (iv < 10) {
+                message_t *messagev = mpool.try_alloc();
+                messagev->duty = iv * 0.1;
+                queue.put(messagev);
+                iv++;
+                //thread_sleep_for(100);
             } 
-            else if (i == 10){
-                j = 0;
-                serial.printf("j is %i\r\n", j);
-                i--;
+            else if (iv == 10){
+                jv = 0;
+                iv--;
             }
         }
-        else if(j == 0){
-            serial.printf("in j = 0\r\n");
-            if (i > 0) {
-                serial.printf("the number is %i\r\n", i);
-                message_t *message = mpool.try_alloc();
-                message->duty = i * 0.1;
-                queue.put(message);
-                i--;
-                thread_sleep_for(100);
+        else if(jv == 0){
+            if (iv > 0) {
+                message_t *messagev = mpool.try_alloc();
+                messagev->duty = iv * 0.1;
+                queue.put(messagev);
+                iv--;
+                //thread_sleep_for(100);
             }
-            else if(i == 0){
-                j = 1;
-                i++;
+            else if(iv == 0){
+                jv = 1;
+                iv++;
             }
 
         }
-        
+
+        // queue for the chocolate thread 
+        if (jc == 1){
+            if (ic < 10) {
+                //serial.printf("duty is %i\r\n", ic);
+                message_t *messagec = mpool.try_alloc();
+                messagec->duty = ic * 0.1;
+                queue.put(messagec);
+                ic++;
+                //thread_sleep_for(100);
+            } 
+            else if (ic == 10){
+                jc = 0;
+                ic--;
+            }
+        }
+        else if(jc == 0){
+            if (ic > 0) {
+                //serial.printf("duty is %i\r\n", ic);
+                message_t *messagec = mpool.try_alloc();
+                messagec->duty = ic * 0.1;                
+                queue.put(messagec);
+                ic--;
+                //thread_sleep_for(100);
+            }
+            else if(ic == 0){
+                jc = 1;
+                ic++;
+            }
+
+        }
+
+        // queue for the strawberry thread 
+
+        if (js == 1){
+            if (is < 10) {
+                message_t *messages = mpool.try_alloc();
+                messages->duty = is * 0.1;
+                queue.put(messages);
+                is++;
+                //thread_sleep_for(100);
+            } 
+            else if (is == 10){
+                js = 0;
+                is--;
+            }
+        }
+        else if(js == 0){
+            if (is > 0) {
+                message_t *messages = mpool.try_alloc();
+                messages->duty = is * 0.1;
+                queue.put(messages);
+                is--;
+                //thread_sleep_for(100);
+            }
+            else if(is == 0){
+                js = 1;
+                is++;
+            }
+
+        }
+        thread_sleep_for(100);
     }
 }
 
 void Vanilla(void) {
+    setbit(dir, ping);
     float duty_c;
     float light;
     float dark;
@@ -77,10 +139,10 @@ void Vanilla(void) {
         osEvent evt = queue.get(0);
 
         if (evt.status == osEventMessage) {
-            message_t *message = (message_t *)evt.value.p;
-            duty_c = message->duty;
-            serial.printf("message gotten %d\r\n", int(duty_c * 10));
-            mpool.free(message);
+            message_t *messagev = (message_t *)evt.value.p;
+            duty_c = messagev->duty;
+            //serial.printf("message gotten %d\r\n", int(duty_c * 10));
+            mpool.free(messagev);
         }
         light = int(duty_c * period);
         dark = period - light;
@@ -93,19 +155,25 @@ void Vanilla(void) {
 }
 
 void Chocolate(void){
+    PwmOut led(LED_BLUE);
+
     float dutyc;
-    //led.period(1.0f);      // 1 second period
+    led.period(1.0f);      // 1 second period
+
     while(true){
         osEvent evt = queue.get(0);
 
         if (evt.status == osEventMessage) {
-            message_t *message = (message_t *)evt.value.p;
-            dutyc = message->duty;
-            mpool.free(message);
+            message_t *messagec = (message_t *)evt.value.p;
+            dutyc = messagec->duty;
+            //serial.printf("message gotten %d\r\n", int(dutyc * 10));
+            mpool.free(messagec);
         }
         
-        //led.write(dutyc);      // 50% duty cycle, relative to period
-        
+        led.write(dutyc);      // 50% duty cycle, relative to period
+        //while (1);
+        thread_sleep_for(100);
+       
     }
 
 }
@@ -128,10 +196,10 @@ void Strawberry(void){
         osEvent evt = queue.get(0);
         
         if (evt.status == osEventMessage) {
-            message_t *message = (message_t *)evt.value.p;
-            num[0] = (message->duty)*100;
+            message_t *messages = (message_t *)evt.value.p;
+            num[0] = (messages->duty)*100;
             seq = {.values = num, .length= NRF_PWM_VALUES_LENGTH(num), .repeats= 50, .end_delay = 0 };
-            mpool.free(message);
+            mpool.free(messages);
         }
 
         if(nrf_pwm_event_check(NRF_PWM0, NRF_PWM_EVENT_SEQEND0)){
@@ -148,12 +216,12 @@ void Strawberry(void){
 
 // main() runs in its own thread in the OS
 int main() {
-    //setbit(dir, ping);
-    serial.printf("Initialize\r\n");
+    
+    //serial.printf("Initialize\r\n");
     thread1.start(Producer);
     //thread2.start(Vanilla);
-    //thread3.start(Chocolate);
-    thread4.start(Strawberry);
+    thread3.start(Chocolate);
+    //thread4.start(Strawberry);
 
     while (true) {
         thread_sleep_for(100);
