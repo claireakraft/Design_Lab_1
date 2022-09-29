@@ -172,14 +172,14 @@ void Strawberry(void) {
     //float dutys;
 
     uint32_t out_pins[4] = {LED_RED, NRF_PWM_PIN_NOT_CONNECTED, NRF_PWM_PIN_NOT_CONNECTED, NRF_PWM_PIN_NOT_CONNECTED};
-    nrf_pwm_pins_set(NRF_PWM0, out_pins);
-    nrf_pwm_configure(NRF_PWM0, NRF_PWM_CLK_2MHz, NRF_PWM_MODE_UP, 1000);
+    nrf_pwm_pins_set(NRF_PWM2, out_pins);
+    nrf_pwm_configure(NRF_PWM2, NRF_PWM_CLK_2MHz, NRF_PWM_MODE_UP, 1000);
     nrf_pwm_values_common_t num[] = {0};
     nrf_pwm_sequence_t seq = {.values = num, .length = NRF_PWM_VALUES_LENGTH(num), .repeats = 50, .end_delay = 0};
     nrf_pwm_enable(NRF_PWM0);
-    nrf_pwm_sequence_set(NRF_PWM0, 0, &seq);
-    nrf_pwm_decoder_set(NRF_PWM0, NRF_PWM_LOAD_COMMON, NRF_PWM_STEP_AUTO);
-    nrf_pwm_task_trigger(NRF_PWM0, NRF_PWM_TASK_SEQSTART0);
+    nrf_pwm_sequence_set(NRF_PWM2, 0, &seq);
+    nrf_pwm_decoder_set(NRF_PWM2, NRF_PWM_LOAD_COMMON, NRF_PWM_STEP_AUTO);
+    nrf_pwm_task_trigger(NRF_PWM2, NRF_PWM_TASK_SEQSTART0);
 
     while (true) {
         osEvent evt = queues.get(0);
@@ -191,10 +191,10 @@ void Strawberry(void) {
             mpools.free(messages);
         }
 
-        if (nrf_pwm_event_check(NRF_PWM0, NRF_PWM_EVENT_SEQEND0)) {
-            nrf_pwm_sequence_set(NRF_PWM0, 0, &seq);
-            nrf_pwm_task_trigger(NRF_PWM0, NRF_PWM_TASK_SEQSTART0);
-            nrf_pwm_event_clear(NRF_PWM0, NRF_PWM_EVENT_SEQEND0);
+        if (nrf_pwm_event_check(NRF_PWM2, NRF_PWM_EVENT_SEQEND0)) {
+            nrf_pwm_sequence_set(NRF_PWM2, 0, &seq);
+            nrf_pwm_task_trigger(NRF_PWM2, NRF_PWM_TASK_SEQSTART0);
+            nrf_pwm_event_clear(NRF_PWM2, NRF_PWM_EVENT_SEQEND0);
         }
         //thread_sleep_for(100);
     }
