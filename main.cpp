@@ -15,8 +15,8 @@ Thread thread1;
 Thread thread2;
 Thread thread3;
 Thread thread4;
-//USBSerial serial;
-PwmOut led(LED_BLUE);
+USBSerial serial;
+//PwmOut led(LED_BLUE);
 
 typedef struct {
     float duty; /* AD result of measured voltage */
@@ -67,7 +67,7 @@ void Producer(void) {
         // queue for the chocolate thread 
         if (jc == 1){
             if (ic < 10) {
-                //serial.printf("duty is %i\r\n", ic);
+                serial.printf("duty is %i\r\n", ic);
                 message_t *messagec = mpool.try_alloc();
                 messagec->duty = ic * 0.1;
                 queue.put(messagec);
@@ -81,7 +81,7 @@ void Producer(void) {
         }
         else if(jc == 0){
             if (ic > 0) {
-                //serial.printf("duty is %i\r\n", ic);
+                serial.printf("duty is %i\r\n", ic);
                 message_t *messagec = mpool.try_alloc();
                 messagec->duty = ic * 0.1;                
                 queue.put(messagec);
@@ -217,7 +217,7 @@ void Strawberry(void){
 // main() runs in its own thread in the OS
 int main() {
     
-    //serial.printf("Initialize\r\n");
+    serial.printf("Initialize\r\n");
     thread1.start(Producer);
     //thread2.start(Vanilla);
     thread3.start(Chocolate);
