@@ -14,7 +14,8 @@ and PWMs to to create a glowing look to the LEDS and also allow them to glow at 
 #define set (uint32_t *)0x50000508
 #define clear (uint32_t *)0x5000050C
 #define dir (uint32_t *)0x50000514
-#define ping (uint8_t)16
+//#define ping (uint8_t)16
+#define ping (uint8_t)4
 #define pinr (uint8_t)24
 #define pinb (uint8_t)6
 
@@ -83,7 +84,7 @@ void Producer(void) {
                 messagec->duty = ic * 0.1;
                 queuec.put(messagec);
                 ic++;
-                thread_sleep_for(10);
+                thread_sleep_for(50);
             } else if (ic == 10) {
                 jc = 0;
                 ic--;
@@ -94,7 +95,7 @@ void Producer(void) {
                 messagec->duty = ic * 0.1;
                 queuec.put(messagec);
                 ic--;
-                thread_sleep_for(10);
+                thread_sleep_for(50);
             } else if (ic == 0) {
                 jc = 1;
                 ic++;
@@ -160,10 +161,11 @@ void Vanilla(void) {
 
 void Chocolate(void) {
     // initiallize the PwmOut
-    PwmOut led(LED_BLUE);
+    //PwmOut led(LED_BLUE);
+    PwmOut led(p5);
 
     float dutyc;
-    led.period(0.1f); // set the period to 0.1 seconds
+    led.period_ms(30); // set the period to 0.1 seconds
 
     while (true) {
         // check is something has been added to the chocolate queue
@@ -187,18 +189,20 @@ void Strawberry(void) {
 
     //float dutys
     // initialize the things needed for the HAL PWM
+    //LED_RED
     
-    uint32_t out_pins[4] = {LED_RED, NRF_PWM_PIN_NOT_CONNECTED, NRF_PWM_PIN_NOT_CONNECTED, NRF_PWM_PIN_NOT_CONNECTED};
+    uint32_t out_pins[4] = {p30, NRF_PWM_PIN_NOT_CONNECTED, NRF_PWM_PIN_NOT_CONNECTED, NRF_PWM_PIN_NOT_CONNECTED};
     nrf_pwm_pins_set(NRF_PWM2, out_pins);
     nrf_pwm_configure(NRF_PWM2, NRF_PWM_CLK_2MHz, NRF_PWM_MODE_UP, 1000);
 
     nrf_pwm_values_common_t num[] = {0};
     nrf_pwm_sequence_t seq = {.values = num, .length = NRF_PWM_VALUES_LENGTH(num), .repeats = 50, .end_delay = 0};
+
     nrf_pwm_enable(NRF_PWM0);
     nrf_pwm_sequence_set(NRF_PWM2, 0, &seq);
     nrf_pwm_decoder_set(NRF_PWM2, NRF_PWM_LOAD_COMMON, NRF_PWM_STEP_AUTO);  
     nrf_pwm_task_trigger(NRF_PWM2, NRF_PWM_TASK_SEQSTART0);
-
+ 
     while (true) {
         osEvent evt = queues.get(0);
 
@@ -206,7 +210,7 @@ void Strawberry(void) {
         //change the duty cycle with HAL
         if (evt.status == osEventMessage) {
             message_t *messages = (message_t *)evt.value.p;
-            num[0] = (messages->duty) * 100;
+            num[0] = (messages->duty) * 1000;
             seq = {.values = num, .length = NRF_PWM_VALUES_LENGTH(num), .repeats = 50, .end_delay = 0};
             mpools.free(messages);
         }
@@ -228,11 +232,11 @@ int main() {
     // initialize threads
     thread1.start(Producer);
   
-    thread3.start(Chocolate);
+    //thread3.start(Chocolate);
    
     thread2.start(Vanilla);
     
-    thread4.start(Strawberry);
+    //thread4.start(Strawberry);
     
     while (true) {
         thread_sleep_for(100);
