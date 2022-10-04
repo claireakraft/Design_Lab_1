@@ -14,8 +14,8 @@ and PWMs to to create a glowing look to the LEDS and also allow them to glow at 
 #define set (uint32_t *)0x50000508
 #define clear (uint32_t *)0x5000050C
 #define dir (uint32_t *)0x50000514
-//#define ping (uint8_t)16
-#define ping (uint8_t)4
+#define ping (uint8_t)16
+//#define ping (uint8_t)4
 #define pinr (uint8_t)24
 #define pinb (uint8_t)6
 
@@ -161,8 +161,8 @@ void Vanilla(void) {
 
 void Chocolate(void) {
     // initiallize the PwmOut
-    //PwmOut led(LED_BLUE);
-    PwmOut led(p5);
+    PwmOut led(LED_BLUE);
+    //PwmOut led(p5);
 
     float dutyc;
     led.period_ms(30); // set the period to 0.1 seconds
@@ -189,9 +189,9 @@ void Strawberry(void) {
 
     //float dutys
     // initialize the things needed for the HAL PWM
-    //LED_RED
+    //p30
     
-    uint32_t out_pins[4] = {p30, NRF_PWM_PIN_NOT_CONNECTED, NRF_PWM_PIN_NOT_CONNECTED, NRF_PWM_PIN_NOT_CONNECTED};
+    uint32_t out_pins[4] = {LED_RED, NRF_PWM_PIN_NOT_CONNECTED, NRF_PWM_PIN_NOT_CONNECTED, NRF_PWM_PIN_NOT_CONNECTED};
     nrf_pwm_pins_set(NRF_PWM2, out_pins);
     nrf_pwm_configure(NRF_PWM2, NRF_PWM_CLK_2MHz, NRF_PWM_MODE_UP, 1000);
 
@@ -232,11 +232,11 @@ int main() {
     // initialize threads
     thread1.start(Producer);
   
-    //thread3.start(Chocolate);
+    thread3.start(Chocolate);
    
     thread2.start(Vanilla);
     
-    //thread4.start(Strawberry);
+    thread4.start(Strawberry);
     
     while (true) {
         thread_sleep_for(100);
